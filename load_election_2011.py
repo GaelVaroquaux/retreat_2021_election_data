@@ -13,7 +13,7 @@ import pandas as pd
 # 8. Cantons T2
 # 9. Elus
 
-circo_t1_df = pd.read_excel('data/cantonales_2011.xls', sheet_name=5)
+circo_t1_df = pd.read_excel('data/cantonales_2011.xls', sheet_name=7)
 
 circo_t1_df = circo_t1_df.rename({
                     'Code Nuance': 'Code Nuance.0',
