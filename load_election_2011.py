@@ -27,5 +27,19 @@ circo_t1_df.columns = pd.MultiIndex.from_tuples([
                 for c in circo_t1_df.columns
             ])
 
-circo_t1_long = circo_t1_df[['%i' % i for i in range(14)]].unstack(level=1)
+# Unstack: go from wide to long
+circo_t1_long = circo_t1_df[['%i' % i for i in range(14)]
+                            ].unstack().unstack(level=1)
+# Work on the index
+circo_t1_long = circo_t1_long.reset_index()
+circo_t1_long = circo_t1_long.rename({
+                    'level_0': 'Candidate number',
+                    'level_1': 'index',
+                    }, axis=1)
+
+circo_t1_long = pd.merge(left=circo_t1_df['general'],
+                         right=circo_t1_long,
+                         right_on='index',
+                         left_index=True)
+
 
