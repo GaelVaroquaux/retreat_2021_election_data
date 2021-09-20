@@ -22,13 +22,16 @@ circo_t1_df = circo_t1_df.rename({
                     '% Voix/Exp': '% Voix/Exp.0',
                     }, axis=1)
 
+max_num_candidate = len([c for c in circo_t1_df.columns
+                         if c.startswith('% Voix/Exp.')])
+
 circo_t1_df.columns = pd.MultiIndex.from_tuples([
                 (c.split('.')[::-1] if ('.' in c) else ('general', c))
                 for c in circo_t1_df.columns
             ])
 
 # Unstack: go from wide to long
-circo_t1_long = circo_t1_df[['%i' % i for i in range(14)]
+circo_t1_long = circo_t1_df[['%i' % i for i in range(max_num_candidate)]
                             ].unstack().unstack(level=1)
 # Work on the index
 circo_t1_long = circo_t1_long.reset_index()
