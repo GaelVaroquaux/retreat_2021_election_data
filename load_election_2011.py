@@ -15,3 +15,17 @@ import pandas as pd
 
 circo_t1_df = pd.read_excel('data/cantonales_2011.xls', sheet_name=5)
 
+circo_t1_df = circo_t1_df.rename({
+                    'Code Nuance': 'Code Nuance.0',
+                    'Voix': 'Voix.0',
+                    '% Voix/Ins': '% Voix/Ins.0',
+                    '% Voix/Exp': '% Voix/Exp.0',
+                    }, axis=1)
+
+circo_t1_df.columns = pd.MultiIndex.from_tuples([
+                (c.split('.')[::-1] if ('.' in c) else ('general', c))
+                for c in circo_t1_df.columns
+            ])
+
+circo_t1_long = circo_t1_df[['%i' % i for i in range(14)]].unstack(level=1)
+
