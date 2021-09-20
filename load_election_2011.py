@@ -15,11 +15,12 @@ import pandas as pd
 
 circo_t1_df = pd.read_excel('data/cantonales_2011.xls', sheet_name=7)
 
+candidate_vars =  ['Nuance', 'Voix', '% Voix/Ins', '% Voix/Exp',
+                   'Sexe', 'Nom', 'Prénom']
+
 circo_t1_df = circo_t1_df.rename({
-                    'Code Nuance': 'Code Nuance.0',
-                    'Voix': 'Voix.0',
-                    '% Voix/Ins': '% Voix/Ins.0',
-                    '% Voix/Exp': '% Voix/Exp.0',
+                    v: v + '.0'
+                    for v in candidate_vars
                     }, axis=1)
 
 max_num_candidate = len([c for c in circo_t1_df.columns
@@ -44,5 +45,9 @@ circo_t1_long = pd.merge(left=circo_t1_df['general'],
                          right=circo_t1_long,
                          right_on='index',
                          left_index=True)
+
+dpt = circo_t1_long['Code du département'].astype(str)
+canton = circo_t1_long['Code du canton'].astype(str)
+circo_t1_long['dept_canton'] = dpt.str.cat(canton, sep='_')
 
 
