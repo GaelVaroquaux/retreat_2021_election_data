@@ -50,4 +50,16 @@ dpt = circo_t1_long['Code du département'].astype(str)
 canton = circo_t1_long['Code du canton'].astype(str)
 circo_t1_long['dept_canton'] = dpt.str.cat(canton, sep='_')
 
+circo_t1_long = circo_t1_long.fillna(value=0)
+
+vote_per_nuance = circo_t1_long.groupby(['dept_canton', 'Nuance'])['% Voix/Exp'].sum()
+vote_per_nuance = vote_per_nuance.to_frame().reset_index()
+
+
+# Quick plot to debug the data
+import seaborn
+seaborn.boxplot(data=vote_per_nuance, y='Nuance', x='% Voix/Exp', orient='h')
+
+import matplotlib.pyplot as plt
+plt.show()
 
