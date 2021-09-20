@@ -1,3 +1,4 @@
+# Data download
 * project url : https://www.data.gouv.fr/fr/reuses/50-1-dis-moi-ou-tu-habites-je-te-dirai-pour-qui-tu-votes/
 
 * data/cantonales_2011.xls :
@@ -20,3 +21,6 @@
 
 * data/Tableau_de_correspondance_communes_cantons_circonscriptions_2012.xls :
   https://www.data.gouv.fr/fr/datasets/r/0a12df6c-de18-44ec-aaf1-0e7d5ab6240f
+
+# Other data
+[signification of "nuances"](https://fr.wikipedia.org/wiki/R%C3%A9pertoire_national_des_%C3%A9lus#Nuances_politiques)
