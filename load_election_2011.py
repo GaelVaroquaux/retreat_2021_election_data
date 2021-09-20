@@ -63,3 +63,6 @@ seaborn.boxplot(data=vote_per_nuance, y='Nuance', x='% Voix/Exp', orient='h')
 import matplotlib.pyplot as plt
 plt.show()
 
+votes_wide = vote_per_nuance.set_index(['dept_canton', 'Nuance']).unstack(level=1)
+votes_wide = votes_wide.fillna(value=0)
+
