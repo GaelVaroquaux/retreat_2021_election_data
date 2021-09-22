@@ -8,6 +8,7 @@ table_corres = pd.read_excel('data/Tableau_de_correspondance_communes_cantons_ci
 dpt = table_corres['Code département'].astype(str)
 canton = table_corres['Code canton'].astype(str)
 table_corres['dept_canton'] = dpt.str.cat(canton, sep='_')
+table_corres = table_corres.drop_duplicates(subset=['dept_canton', 'Nom commune'], keep='first')
 
 file_cols = {'cantonales_2011': [7, ['Sexe', 'Nom', 'Prénom', 'Nuance', 'Voix',
                                      '% Voix/Ins', '% Voix/Exp']],
@@ -71,6 +72,9 @@ for filename, characteristics in file_cols.items():
     # rename columns
     df_long.columns = [re.sub(".*Nuance.*", "Nuance", c) for c in
                        df_long.columns]
+    if filename == 'municipales_2008':
+        df_long = df_long.assign(new_code_commune=df_long['Code de la commune'].replace({r'0*([1-9][0-9]*)[A-Z]+.*': r'\1'}, regex=True).astype(int))
+        df_long = df_long.drop_duplicates(subset=['Code du département', 'new_code_commune', 'Candidate number'], keep='first')
     if 'Code du canton' not in df_long.columns:
         df_long_canton = pd.merge(df_long,
                                   table_corres[['Nom commune', 'dept_canton']],
@@ -84,6 +88,8 @@ for filename, characteristics in file_cols.items():
         df_long_canton['dept_canton'] = dpt.str.cat(canton, sep='_')
     df_long_canton['election'] = filename
 
+
+
     if filename in ('municipales_2008', 'regionales_2010', 'cantonales_2008'):
         df_long_canton_gr = df_long_canton.groupby(
             ['Code du département', 'Libellé du département',
@@ -91,22 +97,21 @@ for filename, characteristics in file_cols.items():
              'Abstentions', '% Abs/Ins', 'Votants', '% Vot/Ins',
              'Blancs et nuls', '% BlNuls/Ins', '% BlNuls/Vot', 'Exprimés',
              '% Exp/Ins', '% Exp/Vot', 'Nuance', 'dept_canton',
-             'election'], as_index=False)['Voix', '% Voix/Exp'].sum()
-        df_long_canton_gr = df_long_canton_gr[df_long_canton_gr.Voix>0]
-        full_df = df_long_canton_gr.groupby(["dept_canton", "Nuance"], as_index=False).apply(lambda x: np.average(x['% Voix/Exp'], weights=x['Voix'])).reset_index()
-        full_df.columns = full_df.columns[0:2].to_list() + ["% Voix/Exp"]
+             'election'], as_index=False)['Voix'].sum()
+        #df_long_canton_gr = df_long_canton_gr[df_long_canton_gr.Voix>0]
+
+        full_df = df_long_canton_gr.groupby(["dept_canton", "Nuance"], as_index=False)['Inscrits', 'Abstentions', 'Blancs et nuls', 'Exprimés', 'Voix'].sum().reset_index()
+        full_df = full_df.assign(**{"% Voix/Exp": full_df['Voix'] / full_df['Exprimés'] * 100,
+                                    "% Abs/Ins": full_df['Abstentions'] / full_df['Inscrits'] * 100})
+
         full_df['election'] = filename
     else:
         full_df = df_long_canton.copy()
 
-
-
-
-
     full_df = full_df.assign(Nuance=full_df.Nuance.str.replace('^L', ''))
     election_results[filename] = full_df
 
-common_cols = ['election', 'Nuance', '% Voix/Exp', 'dept_canton']
+common_cols = ['election', 'Nuance', '% Voix/Exp', "% Abs/Ins", 'dept_canton']
 all_elec = pd.concat([df[common_cols] for df in election_results.values()], axis=0)
 vote_per_nuance = all_elec.groupby(['election', 'dept_canton', 'Nuance'])['% Voix/Exp'].sum()
 vote_per_nuance = vote_per_nuance.to_frame().reset_index()
