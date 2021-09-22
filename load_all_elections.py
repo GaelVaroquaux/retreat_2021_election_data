@@ -1,4 +1,13 @@
 import pandas as pd
+import re
+import seaborn
+import matplotlib.pyplot as plt
+import numpy as np
+
+table_corres = pd.read_excel('data/Tableau_de_correspondance_communes_cantons_circonscriptions_2012.xls', header=1)
+dpt = table_corres['Code département'].astype(str)
+canton = table_corres['Code canton'].astype(str)
+table_corres['dept_canton'] = dpt.str.cat(canton, sep='_')
 
 file_cols = {'cantonales_2011': [7, ['Sexe', 'Nom', 'Prénom', 'Nuance', 'Voix',
                                      '% Voix/Ins', '% Voix/Exp']],
@@ -58,5 +67,48 @@ for filename, characteristics in file_cols.items():
                        right=df_long,
                        right_on='index',
                        left_index=True)
-    election_results[filename] = df_long
+    # rename columns
+    df_long.columns = [re.sub(".*Nuance.*", "Nuance", c) for c in
+                       df_long.columns]
+    if 'Code du canton' not in df_long.columns:
+        print(filename, df_long.head())
+        df_long_canton = pd.merge(df_long,
+                                  table_corres[['Nom commune', 'dept_canton']],
+                                  left_on='Libellé de la commune',
+                                  right_on='Nom commune',
+                                  how='left')
+    else:
+        df_long_canton = df_long.copy()
+        dpt = df_long_canton['Code du département'].astype(str)
+        canton = df_long_canton['Code du canton'].astype(str)
+        df_long_canton['dept_canton'] = dpt.str.cat(canton, sep='_')
 
+    if filename == 'municipales_2008':
+        commune = df_long_canton['Code de la commune'].astype(str)
+        dpt = df_long_canton['Code du département'].astype(str)
+        df_long_canton['dept_commune'] = dpt.str.cat(commune, sep='_')
+        # sum by commune + weighted mean
+        df_long_canton = df_long_canton.groupby(
+            ['Code du département', 'Libellé du département',
+             'Code de la commune', 'Libellé de la commune', 'Inscrits',
+             'Abstentions', '% Abs/Ins', 'Votants', '% Vot/Ins',
+             'Blancs et nuls', '% BlNuls/Ins', '% BlNuls/Vot', 'Exprimés',
+             '% Exp/Ins', '% Exp/Vot', 'Nuance', 'Nom commune', 'dept_canton',
+             'election', 'dept_commune'], as_index=False)['Sieges', 'Voix',
+             '% Voix/Ins', '% Voix/Exp'].sum()
+        df_long_canton = df_long_canton[df_long_canton.Voix>0]
+        df_long_canton.groupby(["dept_canton", "Nuance"], as_index=False).apply(lambda x: np.average(x['% Voix/Exp'], weights=x['Voix']))
+
+    elif filename == 'regionales_2010':
+
+
+
+    df_long_canton['election'] = filename
+    election_results[filename] = df_long_canton
+
+common_cols = ['election', 'Nuance', '% Voix/Exp', 'dept_canton']
+all_elec = pd.concat([df[common_cols] for df in election_results.values()], axis=0)
+vote_per_nuance = all_elec.groupby(['election', 'dept_canton', 'Nuance'])['% Voix/Exp'].sum()
+vote_per_nuance = vote_per_nuance.to_frame().reset_index()
+seaborn.catplot(data=vote_per_nuance, y='Nuance', x='% Voix/Exp', orient='h', col='election', kind='box', col_wrap=3)
+plt.show()
