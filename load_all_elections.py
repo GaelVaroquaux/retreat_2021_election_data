@@ -72,7 +72,6 @@ for filename, characteristics in file_cols.items():
     df_long.columns = [re.sub(".*Nuance.*", "Nuance", c) for c in
                        df_long.columns]
     if 'Code du canton' not in df_long.columns:
-        print(filename, df_long.head())
         df_long_canton = pd.merge(df_long,
                                   table_corres[['Nom commune', 'dept_canton']],
                                   left_on='Libellé de la commune',
@@ -86,35 +85,32 @@ for filename, characteristics in file_cols.items():
     df_long_canton['election'] = filename
 
     if filename in ('municipales_2008', 'regionales_2010', 'cantonales_2008'):
-        continue
-    if filename == 'municipales_2008':
-        commune = df_long_canton['Code de la commune'].astype(str)
-        dpt = df_long_canton['Code du département'].astype(str)
-        df_long_canton['dept_commune'] = dpt.str.cat(commune, sep='_')
-        # sum by commune + weighted mean
         df_long_canton_gr = df_long_canton.groupby(
             ['Code du département', 'Libellé du département',
-             'Code de la commune', 'Libellé de la commune', 'Inscrits',
+             'Code de la commune', 'Inscrits',
              'Abstentions', '% Abs/Ins', 'Votants', '% Vot/Ins',
              'Blancs et nuls', '% BlNuls/Ins', '% BlNuls/Vot', 'Exprimés',
-             '% Exp/Ins', '% Exp/Vot', 'Nuance', 'Nom commune', 'dept_canton',
-             'election', 'dept_commune'], as_index=False)['Sieges', 'Voix',
-             '% Voix/Ins', '% Voix/Exp'].sum()
-        df_long_canton = df_long_canton[df_long_canton.Voix>0]
-        full_df = df_long_canton.groupby(["dept_canton", "Nuance"], as_index=False).apply(lambda x: np.average(x['% Voix/Exp'], weights=x['Voix'])).to_frame()
+             '% Exp/Ins', '% Exp/Vot', 'Nuance', 'dept_canton',
+             'election'], as_index=False)['Voix', '% Voix/Exp'].sum()
+        df_long_canton_gr = df_long_canton_gr[df_long_canton_gr.Voix>0]
+        full_df = df_long_canton_gr.groupby(["dept_canton", "Nuance"], as_index=False).apply(lambda x: np.average(x['% Voix/Exp'], weights=x['Voix'])).reset_index()
+        full_df.columns = full_df.columns[0:2].to_list() + ["% Voix/Exp"]
+        full_df['election'] = filename
+    else:
+        full_df = df_long_canton.copy()
 
-    elif filename == 'regionales_2010':
-        pass
 
 
 
-    df_long_canton = df_long_canton.assign(Nuance=df_long_canton.Nuance.str.replace('^L', ''))
-    election_results[filename] = df_long_canton
+
+    full_df = full_df.assign(Nuance=full_df.Nuance.str.replace('^L', ''))
+    election_results[filename] = full_df
 
 common_cols = ['election', 'Nuance', '% Voix/Exp', 'dept_canton']
 all_elec = pd.concat([df[common_cols] for df in election_results.values()], axis=0)
-all_elec.to_csv('results/concatenate_all_election.csv', index=False)
 vote_per_nuance = all_elec.groupby(['election', 'dept_canton', 'Nuance'])['% Voix/Exp'].sum()
 vote_per_nuance = vote_per_nuance.to_frame().reset_index()
+vote_per_nuance.to_csv('results/concatenate_all_election.csv', index=False)
+
 seaborn.catplot(data=vote_per_nuance, y='Nuance', x='% Voix/Exp', orient='h', col='election', kind='box', col_wrap=3)
 plt.savefig('results/vote_per_nuance.pdf', bbox_inches='tight')
