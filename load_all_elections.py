@@ -113,7 +113,11 @@ for filename, characteristics in file_cols.items():
 
 common_cols = ['election', 'Nuance', '% Voix/Exp', "% Abs/Ins", 'dept_canton']
 all_elec = pd.concat([df[common_cols] for df in election_results.values()], axis=0)
+all_elec = all_elec.assign(abstention=all_elec['% Abs/Ins']) 
+all_elec_melt = pd.melt(all_elec[['election', 'abstention', 'dept_canton']], id_vars=['election', 'dept_canton'], value_vars=['abstention'], var_name='Nuance', value_name='% Voix/Exp')
+vote_per_nuance_abs = all_elec_melt.groupby(['election', 'dept_canton', 'Nuance'])['% Voix/Exp'].mean()
 vote_per_nuance = all_elec.groupby(['election', 'dept_canton', 'Nuance'])['% Voix/Exp'].sum()
+vote_per_nuance = pd.concat((vote_per_nuance, vote_per_nuance_abs))
 vote_per_nuance = vote_per_nuance.to_frame().reset_index()
 vote_per_nuance.to_csv('results/concatenate_all_election.csv', index=False)
 
